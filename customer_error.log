@@ -1,0 +1,2 @@
+{"level":"error","message":"Error while creating table : Product","timestamp":"2023-11-06T10:16:26.222Z"}
+{"level":"error","message":"Error while dropping the product table","timestamp":"2023-11-06T10:49:02.084Z"}
