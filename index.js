@@ -1,8 +1,17 @@
 const logs = require('./logger_node');
+const jwt = require('jsonwebtoken');
+const path = require("path");
+
 const express = require('express');
 const app = express();
 //? or the below method of initialiaing app 
 // const app  = require('express')();
+
+app.use('/website',express.static(path.join(__dirname,public)));
+// app.use(express.static(path.join(__dirname,'public')));
+app.use((req,res)=>{
+    res.status(404).send('<h1>ERROR 404 : Resource not found</h1>');
+});
 
 //!middleware usage---->
 app.use(express.json())//* will now convert the body to json for handler usage
@@ -10,7 +19,7 @@ app.use(express.json())//* will now convert the body to json for handler usage
 
 //! Connector to node_db--->
 const { Pool } = require('pg');
-const pool = new Pool({
+const pool = new Pool({ 
     user: 'nischal',
     host: 'host.docker.internal',
     password: '1234',
