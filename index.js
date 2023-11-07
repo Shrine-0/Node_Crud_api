@@ -1,13 +1,15 @@
 const logs = require('./logger_node');
 const jwt = require('jsonwebtoken');
 const path = require("path");
+require('dotenv').config();
 
 const express = require('express');
 const app = express();
 //? or the below method of initialiaing app 
 // const app  = require('express')();
-const public = './public';
-app.use('/website',express.static(path.join(__dirname,public)));
+
+// const public = './public';
+// app.use('/website',express.static(path.join(__dirname,public)));
 // app.use(express.static(path.join(__dirname,'public')));
 // app.use((req,res)=>{
 //     res.status(404).send('<h1>ERROR 404 : Resource not found</h1>');
@@ -19,7 +21,7 @@ app.use(express.json())//* will now convert the body to json for handler usage
 
 //! Connector to node_db--->
 const { Pool } = require('pg');
-const pool = new Pool({ 
+const pool = new Pool({
     user: 'nischal',
     host: 'host.docker.internal',
     password: '1234',
@@ -74,6 +76,10 @@ app.post('/app/post', async (req, res) => {
                     Message: `Table => ${TableName} created successfully`,
                 });
                 logs.customerLogs.log('info', `Table : ${TableName} creation successfull`);
+            } else {
+                res.status(204).send({
+                    Message: "No Table name given",
+                });
             }
 
         } catch (err) {
@@ -87,61 +93,70 @@ app.post('/app/post', async (req, res) => {
             });
             logs.customerLogs.log('error', `Error while creating table : ${TableName}`);
         }
-
     }
 });
 //! ------> API for insertion to table 
 app.post('/app/insert/', async (req, res) => {
     const { TableName } = req.body;
     // const {Id} = req.params;
-    const { Name } = req.body;
-    const { Email } = req.body;
-    if (!Name || !Email) {
-        res.status(412).send({
-            Message: "Please check if name and email is sent",
-        });
-    } else {
-        try {
-            let result = await pool.query(`insert into ${TableName}(name,email)
-            values('${Name}','${Email}')
+    const { Name, Email, Password } = req.body;
+    // if (!Name || !Email || !Password) {
+    //     return res.status(412).send({
+    //         Message: "Please check if name and email is sent",
+    //     });
+    // } else {
+    try {
+        let result = await pool.query(`insert into ${TableName}(name,email,password)
+            values('${Name}','${Email}','${Password}')
             `);
-            if (result) {
-                res.status(200).send({
-                    Message: `Successully added values to the ${TableName} table`,
-                });
-                logs.customerLogs.log(`info','Successfully inserted values to ${TableName} table`);
-            }
-        } catch (err) {
-            res.status(418).send({
-                Message: `Error while inserting data to the table ${TableName}`,
-                // Error : err.message,
+        if (result) {
+            logs.customerLogs.log(`info','Successfully inserted values to ${TableName} table`);
+            return res.status(200).send({
+                Message: `Successully added values to the ${TableName} table`,
             });
-            logs.customerLogs.log(`error','Error while inserting values to the ${TableName} table`);
+        } else {
+            return res.status(204).send({
+                Message: "no data for insertion sent"
+            });
         }
+    } catch (err) {
+        logs.customerLogs.log(`error','Error while inserting values to the ${TableName} table`);
+        return res.status(418).send({
+            Message: `Error while inserting data to the table ${TableName}`,
+            // Error : err.message,
+        });
     }
+    // }
 });
 
 //!-------> API for select based on ID propvided
-app.get('/app/select/:id', async (req, res) => {
-    const { Id } = req.params;
+app.get('/app/select/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
     const { TableName } = req.body;
+    // const id = parseInt(Id);
     try {
         const result = await pool.query(`select * from ${TableName}
-        where id = ${Id}
-        order by id desc;
+        where id = ${id}
         `);
-        if (result) {
-            res.status(201).send({
-                Message: "data pulled from the table successfully",
+        if (result.rowCount > 0) {
+            res.status(201);
+            // .send({
+            //     Message: "data pulled from the table successfully",
+            // });
+            res.json(result.rows);
+            logs.customerLogs.log('info', `Succesfully pulled  data of Id - ${id} from the s${TableName} table`);
+        } else {
+            res.status(418).send({
+                Message: `No data present at id : ${id}`,
             });
-            logs.customerLogs.log('info',`Succesfully pulled  data of Id - ${Id} from the s${TableName} table`);
+
         }
     } catch (err) {
         res.status(418).send({
-            Message: "Error while pulling from table customers",
+            Message: `Error while pulling from table ${TableName} fro ${id}`,
             Error: err.message,
         });
-        logs.customerLogs.log('error', `Error while pulling data of Id - ${Id} from ${TableName} table`);
+        logs.customerLogs.log('error', `Error while pulling data of Id - ${id} from ${TableName} table`);
     }
 });
 
@@ -167,25 +182,102 @@ app.post('/app/drop', async (req, res) => {
 
 //! -----> API for selecting data and viewing
 app.get('/app/select', async (req, res) => {
-    const {TableName} = req.body;
+    const { TableName } = req.body;
     try {
         const result = await pool.query(`select * from ${TableName} 
         where id < 8
         order by id desc;                    
         `);
-        res.json(result.rows);
-        if (result){
-            logs.customerLogs.log('info',`Successfully pulled data from the table ${TableName}`);
+        if (result) {
+            logs.customerLogs.log('info', `Successfully pulled data from the table ${TableName}`);
+            return res.json(result.rows);
+        } else {
+            return res.status(204).send({ Error: `no data to be pulled` });
         }
     } catch (err) {
-        res.status(418).send({
+        return res.status(418).json({
             Message: "Error while viewing data",
             Error: err.message
         });
         logs.customerLogs.log('error', `Error while pulling data from the ${TableName} table`);
     }
 });
+//! -----> Alter table api
+app.post('/app/alterTable', async (req, res) => {
+    const { TableName } = req.body;
+    const { columnName } = req.body;
+    const result = await pool.query(`alter table ${TableName} add column ${columnName} varchar(20)`);
+    if (!result) {
+        return res.status(400).json({
+            Message: `Error while adding column-${columnName}`
+        });
+    } else {
+        return res.status(200).json({
+            Message: `successfully added column ${columnName}`
+        });
+    }
+});
+
+//! -----> JWT test Demo for login api
+app.post('/login', async (req, res) => {
+    const { TableName, name } = req.body;
+    try {
+        // const result = await pool.query(`select * from ${TableName} 
+        // where email = '${Email}'
+        // `);
+        const result = await pool.query(`select * from ${TableName} where name = '${name}'`);
+        // const result =  pool.query('SELECT * FROM \$1 WHERE name = \$2', [TableName, name]);
+        if (!result.rows.length)
+            return res.json({
+                Message: "not a valid user",
+            });
+        else {
+            const user = {
+                name: result.rows[0].name,
+                password: result.rows[0].password
+            };
+            const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '15m' })//* creates accesstoken by serilizing accrodingly to the jwt structure(header.body.signature)
+            res.json({
+                AccessToken: accessToken,
+            });
+        }
+
+    } catch (err) {
+        res.status(418);
+    }
+});
+
+//!middleware for jwt
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];//*Header comes with parameters mainly ' Bearer TOKEN '
+    const token = authHeader && authHeader.split(' ')[1];
+    //*check if token is present
+    if (token == null)
+        return res.status(401).send({
+            Message: `please register to log in`
+        });
+    //*verify the token sent 
+    jwt.verify(token, process.env.ACCESS_TOKEN, (err, user) => {
+        if (err) {
+            if (err.name === 'JsonWebTokenError')
+                return res.status(401).send({
+                    Message: "not a valid token"
+                });
+            else if (err.name === 'TokenExpiredError')
+                return res.status(401).send({
+                    Message: "Token has expired"
+                });
+            else 
+                return res.status(401).send({
+                    Message:"not a valid token"
+                });
+
+        }
+        req.user = user;
+        next();//* to move out of the middleware
+    });
+}
 
 app.listen(PORT, () => {
-    console.log(`App is running in ----------> http://localhost:${PORT} `);
+    console.log(`App is running in ----------> http://localhost:${PORT}`);
 });
