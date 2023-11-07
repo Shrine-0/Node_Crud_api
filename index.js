@@ -220,12 +220,12 @@ app.post('/app/alterTable', async (req, res) => {
 
 //! -----> JWT test Demo for login api
 app.post('/login', async (req, res) => {
-    const { TableName, name } = req.body;
+    const { TableName,email,password} = req.body;
     try {
         // const result = await pool.query(`select * from ${TableName} 
         // where email = '${Email}'
         // `);
-        const result = await pool.query(`select * from ${TableName} where name = '${name}'`);
+        const result = await pool.query(`select * from ${TableName} where email = '${email}' and password = '${password}'`);
         // const result =  pool.query('SELECT * FROM \$1 WHERE name = \$2', [TableName, name]);
         if (!result.rows.length)
             return res.json({

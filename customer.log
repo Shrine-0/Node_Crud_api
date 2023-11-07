@@ -142,3 +142,6 @@
 {"level":"info","message":"Succesfully pulled  data of Id - 9 from the sCustomer table","timestamp":"2023-11-07T11:05:05.226Z"}
 {"level":"info","message":"Succesfully pulled  data of Id - 9 from the sCustomer table","timestamp":"2023-11-07T11:06:37.656Z"}
 {"level":"info","message":"Succesfully pulled  data of Id - 6 from the sCustomer table","timestamp":"2023-11-07T11:06:41.047Z"}
+{"level":"info","message":"Successfully pulled data from the table Customer","timestamp":"2023-11-07T11:15:25.265Z"}
+{"level":"info","message":"Succesfully pulled  data of Id - 1 from the sCustomer table","timestamp":"2023-11-07T11:17:06.592Z"}
+{"level":"info","message":"Succesfully pulled  data of Id - 1 from the sCustomer table","timestamp":"2023-11-07T11:17:14.255Z"}
