@@ -99,7 +99,7 @@ app.post('/app/post', async (req, res) => {
     }
 });
 //! ------> API for insertion to table 
-app.post('/app/insert/', async (req, res) => {
+app.post('/app/insert/',authenticateToken, async (req, res) => {
     const { TableName } = req.body;
     // const {Id} = req.params;
     const { Name, Email, Password } = req.body;
@@ -167,7 +167,7 @@ app.get('/app/select/:id', authenticateToken, async (req, res) => {
 });
 
 //!-------> API for Dropping a table 
-app.post('/app/drop', async (req, res) => {
+app.post('/app/drop',authenticateToken, async (req, res) => {
     const { TableName } = req.body;
     try {
         const result = await pool.query(`drop table ${TableName}`);
@@ -208,7 +208,7 @@ app.get('/app/select', async (req, res) => {
     }
 });
 //! -----> Alter table api
-app.post('/app/alterTable', async (req, res) => {
+app.post('/app/alterTable',authenticateToken, async (req, res) => {
     const { TableName } = req.body;
     const { columnName, columnType } = req.body;
     const result = await pool.query(`alter table ${TableName} add column ${columnName} ${columnType}`);

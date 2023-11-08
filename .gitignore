@@ -1,0 +1,3 @@
+#Ignore log files 
+customer.log
+customer_error.log

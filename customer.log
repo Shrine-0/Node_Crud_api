@@ -273,3 +273,8 @@
 {"level":"info","message":"Table : token creation successfull","timestamp":"2023-11-08T10:41:29.566Z"}
 {"level":"info","message":"Successfully pulled data from the table token","timestamp":"2023-11-08T10:41:34.408Z"}
 {"level":"info","message":"Successfully pulled data from the table token","timestamp":"2023-11-08T10:43:49.252Z"}
+{"level":"info","message":"Successfully pulled data from the table token","timestamp":"2023-11-08T10:48:22.920Z"}
+{"level":"info","message":"Successfully inserted values to customer table","timestamp":"2023-11-08T10:55:11.692Z"}
+{"level":"info","message":"Successfully pulled data from the table customer","timestamp":"2023-11-08T10:55:23.708Z"}
+{"level":"info","message":"Successfully inserted values to customer table","timestamp":"2023-11-08T10:55:43.507Z"}
+{"level":"info","message":"Successfully pulled data from the table customer","timestamp":"2023-11-08T10:55:46.166Z"}
