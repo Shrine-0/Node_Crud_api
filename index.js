@@ -1,3 +1,5 @@
+//!! todo  -- fix the alterTable api 
+
 const logs = require('./logger_node');
 const jwt = require('jsonwebtoken');
 const path = require("path");
@@ -59,7 +61,7 @@ app.post('/app/logo/:id', (req, res) => {
 });
 //! -----> API for Table creation---->
 app.post('/app/post', async (req, res) => {
-    const { TableName } = req.body;
+    const { TableName ,columnName1,columnName2,columnType1,columnType2} = req.body;
     if (!TableName) {
         res.status(418).send({
             Message: "Missing element - please recheck of you sent the TableName",
@@ -67,9 +69,10 @@ app.post('/app/post', async (req, res) => {
     } else {
         try {
             let result = await pool.query(`create table ${TableName}(
-        Id serial primary key,
-        Name varchar(20) not null,
-        Email varchar(20) not null
+            ${columnName1} ${columnType1},
+            ${columnName2} ${columnType2},
+           
+            date timestamp default current_timestamp
         )`);
             if (result) {
                 res.status(201).send({
@@ -105,25 +108,28 @@ app.post('/app/insert/', async (req, res) => {
     //         Message: "Please check if name and email is sent",
     //     });
     // } else {
+    const sql = `insert into ${TableName}(name,email,password) values (\$1, \$2, \$3)`;
+    const values = [Name, Email, Password];
     try {
-        let result = await pool.query(`insert into ${TableName}(name,email,password)
-            values('${Name}','${Email}','${Password}')
-            `);
-        if (result) {
-            logs.customerLogs.log(`info','Successfully inserted values to ${TableName} table`);
+        // const result = await pool.query(`insert into ${TableName}(name,email,password)
+        //     values('${Name}','${Email}','${Password}')
+        //     `);
+        const result = await pool.query(sql, values);
+        if (result && result.rowCount > 0) {
+            logs.customerLogs.log('info', `Successfully inserted values to ${TableName} table`);
             return res.status(200).send({
                 Message: `Successully added values to the ${TableName} table`,
             });
         } else {
             return res.status(204).send({
-                Message: "no data for insertion sent"
+                Message: "no data for insertion sent",
             });
         }
     } catch (err) {
-        logs.customerLogs.log(`error','Error while inserting values to the ${TableName} table`);
-        return res.status(418).send({
+        logs.customerLogs.log('error', `Error while inserting values to the ${TableName} table`);
+        res.status(418).send({
             Message: `Error while inserting data to the table ${TableName}`,
-            // Error : err.message,
+            Error: err.message,
         });
     }
     // }
@@ -185,8 +191,7 @@ app.get('/app/select', async (req, res) => {
     const { TableName } = req.body;
     try {
         const result = await pool.query(`select * from ${TableName} 
-        where id < 8
-        order by id desc;                    
+                           
         `);
         if (result) {
             logs.customerLogs.log('info', `Successfully pulled data from the table ${TableName}`);
@@ -205,14 +210,14 @@ app.get('/app/select', async (req, res) => {
 //! -----> Alter table api
 app.post('/app/alterTable', async (req, res) => {
     const { TableName } = req.body;
-    const { columnName } = req.body;
-    const result = await pool.query(`alter table ${TableName} add column ${columnName} varchar(20)`);
+    const { columnName, columnType } = req.body;
+    const result = await pool.query(`alter table ${TableName} add column ${columnName} ${columnType}`);
     if (!result) {
-        return res.status(400).json({
+        return res.status(400).send({
             Message: `Error while adding column-${columnName}`
         });
     } else {
-        return res.status(200).json({
+        return res.status(200).send({
             Message: `successfully added column ${columnName}`
         });
     }
@@ -220,7 +225,7 @@ app.post('/app/alterTable', async (req, res) => {
 
 //! -----> JWT test Demo for login api
 app.post('/login', async (req, res) => {
-    const { TableName,email,password} = req.body;
+    const { TableName, email, password } = req.body;
     try {
         // const result = await pool.query(`select * from ${TableName} 
         // where email = '${Email}'
@@ -238,6 +243,7 @@ app.post('/login', async (req, res) => {
             };
             const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '15m' })//* creates accesstoken by serilizing accrodingly to the jwt structure(header.body.signature)
             res.json({
+                User: user.name,
                 AccessToken: accessToken,
             });
         }
@@ -267,9 +273,9 @@ function authenticateToken(req, res, next) {
                 return res.status(401).send({
                     Message: "Token has expired"
                 });
-            else 
+            else
                 return res.status(401).send({
-                    Message:"not a valid token"
+                    Message: "not a valid token"
                 });
 
         }

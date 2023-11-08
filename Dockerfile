@@ -3,6 +3,9 @@ FROM node:latest
 #set the working directory in the container to /app
 WORKDIR /app
 
+#Add nodemon globally
+RUN npm install -g nodemon 
+
 #copy the package and poackage-lock .json file to the working diorectory /app
 COPY package*.json ./
 
@@ -13,7 +16,7 @@ COPY . .
 
 EXPOSE 8080
 
-CMD ["node","index.js"]
+CMD ["nodemon","index.js"]
 
 
 
