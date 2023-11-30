@@ -1,4 +1,4 @@
-const logs = require('./logger_node');
+const logs = require('./logs/logger_node');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
@@ -19,10 +19,8 @@ const pool = new Pool({
     port: 5431
 });
 
-
 const PORT = 3000;
 const { readFile } = require('fs').promises;
-
 
 app.post('/tokenGenerator', async (req, res) => {
     const { refreshToken } = req.body;

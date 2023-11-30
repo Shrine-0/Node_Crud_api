@@ -1,21 +1,19 @@
 //!! todo  -- fix the alterTable api 
 
-const logs = require('./logger_node');
+const logs = require('./logs/logger_node');
 const jwt = require('jsonwebtoken');
 const path = require("path");
 require('dotenv').config();
 
 const express = require('express');
 const app = express();
+const privateKeyPath = './keys/privateKey.pem';
+const publicKeyPath = './keys/publicKey.pem';
+const fs = require('fs');
+const privateKey = fs.readFileSync(privateKeyPath,"utf-8");
+const publicKey = fs.readFileSync(publicKeyPath,"utf-8");
 //? or the below method of initialiaing app 
 // const app  = require('express')();
-
-// const public = './public';
-// app.use('/website',express.static(path.join(__dirname,public)));
-// app.use(express.static(path.join(__dirname,'public')));
-// app.use((req,res)=>{
-//     res.status(404).send('<h1>ERROR 404 : Resource not found</h1>');
-// });
 
 //!middleware usage---->
 app.use(express.json())//* will now convert the body to json for handler usage
@@ -31,10 +29,11 @@ const pool = new Pool({
     port: 5431
 });
 //!   <---------------------
-
+const routeDb = require('./routes/route');
 const PORT = 8080;
 const { readFile } = require('fs').promises;
 
+app.use('/',routeDb);
 //! ---- GET request API --------
 app.get('/app', (req, res) => {
     res.status(200).send({
@@ -59,47 +58,9 @@ app.post('/app/logo/:id', (req, res) => {
         });
 
 });
-//! -----> API for Table creation---->
-app.post('/app/post', async (req, res) => {
-    const { TableName ,columnName1,columnName2,columnType1,columnType2} = req.body;
-    if (!TableName) {
-        res.status(418).send({
-            Message: "Missing element - please recheck of you sent the TableName",
-        });
-    } else {
-        try {
-            let result = await pool.query(`create table ${TableName}(
-            ${columnName1} ${columnType1},
-            ${columnName2} ${columnType2},
-           
-            date timestamp default current_timestamp
-        )`);
-            if (result) {
-                res.status(201).send({
-                    Message: `Table => ${TableName} created successfully`,
-                });
-                logs.customerLogs.log('info', `Table : ${TableName} creation successfull`);
-            } else {
-                res.status(204).send({
-                    Message: "No Table name given",
-                });
-            }
 
-        } catch (err) {
-            res.status(500).send({
-                // TableName : `${TableName}`,
-                // Name : `${Name}`,
-                // Email : `${Email}`,
-                Message: "Error occured while making a query to create a table",
-                Error: err.message,
-
-            });
-            logs.customerLogs.log('error', `Error while creating table : ${TableName}`);
-        }
-    }
-});
 //! ------> API for insertion to table 
-app.post('/app/insert/',authenticateToken, async (req, res) => {
+app.post('/app/insert/', authenticateToken,async (req, res) => {
     const { TableName } = req.body;
     // const {Id} = req.params;
     const { Name, Email, Password } = req.body;
@@ -225,7 +186,7 @@ app.post('/app/alterTable',authenticateToken, async (req, res) => {
 
 //! -----> JWT test Demo for login api
 app.post('/login', async (req, res) => {
-    const { TableName, email, password } = req.body;
+const { TableName, email, password } = req.body;
     try {
         // const result = await pool.query(`select * from ${TableName} 
         // where email = '${Email}'
@@ -237,15 +198,26 @@ app.post('/login', async (req, res) => {
                 Message: "not a valid user",
             });
         else {
+            // logs.info(`name:${result.rows[0].name} email : ${result.rows[0].email}`);
             const user = {
                 name: result.rows[0].name,
-                password: result.rows[0].password
+                email: result.rows[0].email,
             };
-            const accessToken = jwt.sign(user, process.env.ACCESS_TOKEN, { expiresIn: '15m' })//* creates accesstoken by serilizing accrodingly to the jwt structure(header.body.signature)
-            res.json({
-                User: user.name,
+            try{
+            const accessToken = jwt.sign(user,privateKey,{ algorithm:'RS256',expiresIn:'25m'});//* creates accesstoken by serilizing accrodingly to the jwt structure(header.body.signature)
+            return res.json({
                 AccessToken: accessToken,
             });
+            }catch{
+                logs.error(err.message);
+                return res.json({
+                    message:err.message
+                })
+            }
+            // return res.json({
+            //     message:"this is the else block",
+            //     // name: result.rows[0].name
+            // })
         }
 
     } catch (err) {
@@ -255,15 +227,16 @@ app.post('/login', async (req, res) => {
 
 //!middleware for jwt
 function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];//*Header comes with parameters mainly ' Bearer TOKEN '
-    const token = authHeader && authHeader.split(' ')[1];
+    // const authHeader = req.headers['authorization'];
+    const {authorization} = req.headers; //*Header comes with parameters mainly ' Bearer TOKEN '
+    const token = authorization && authorization.split(' ')[1];
     //*check if token is present
     if (token == null)
         return res.status(401).send({
-            Message: `please register to log in`
+            Message: `please register to log in`,
         });
     //*verify the token sent 
-    jwt.verify(token, process.env.ACCESS_TOKEN, (err, user) => {
+    jwt.verify(token, publicKey, (err, user) => {
         if (err) {
             if (err.name === 'JsonWebTokenError')
                 return res.status(401).send({
@@ -277,7 +250,6 @@ function authenticateToken(req, res, next) {
                 return res.status(401).send({
                     Message: "not a valid token"
                 });
-
         }
         req.user = user;
         next();//* to move out of the middleware
@@ -285,5 +257,5 @@ function authenticateToken(req, res, next) {
 }
 
 app.listen(PORT, () => {
-    console.log(`App is running in ----------> http://localhost:${PORT}`);
+    console.log(`App is running in http://localhost:${PORT}`);
 });

@@ -278,3 +278,5 @@
 {"level":"info","message":"Successfully pulled data from the table customer","timestamp":"2023-11-08T10:55:23.708Z"}
 {"level":"info","message":"Successfully inserted values to customer table","timestamp":"2023-11-08T10:55:43.507Z"}
 {"level":"info","message":"Successfully pulled data from the table customer","timestamp":"2023-11-08T10:55:46.166Z"}
+{"level":"info","message":"Successfully pulled data from the table customer","timestamp":"2023-11-08T11:25:16.073Z"}
+{"level":"info","message":"Successfully pulled data from the table customer","timestamp":"2023-11-08T11:25:17.158Z"}
