@@ -1,3 +1,4 @@
 #Ignore log files 
 customer.log
 customer_error.log
+node_modules
